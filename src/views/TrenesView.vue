@@ -19,7 +19,7 @@ const searchStations = async () => {
     headers: { authorization: authToken },
     params: {
       path: { id: parseInt(searchData.value.desde) },
-      query: { hasta: parseInt(searchData.value.hasta) }
+      query: { hasta: parseInt(searchData.value.hasta), tipoBusqueda: formData.value.searchType, fecha: formData.value.selectedDate, hora: formData.value.selectedTime }
     }
   })
   return data
@@ -44,17 +44,19 @@ onMounted(async () => {
     }
     formData.value = { desde: {}, hasta: {} }
   } else {
-
     // Retrieve the serialized data
     const serializedData = sessionStorage.getItem('formData')
-
     if (serializedData) {
       try {
         formData.value = JSON.parse(serializedData)
         searchData.value = {
           desde: formData.value.desde.id_estacion,
           hasta: formData.value.hasta.id_estacion,
+          tipoBusqueda: formData.value.searchType,
+          fecha: formData.value.selectedDate,
+          hora: formData.value.selectedTime
         }
+
       } catch (e) {
         console.error('Error parsing form data:', e)
       }
