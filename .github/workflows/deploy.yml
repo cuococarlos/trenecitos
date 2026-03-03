@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - terraform-local
 
 env:
   AWS_REGION: us-east-1
