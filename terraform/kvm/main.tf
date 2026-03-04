@@ -1,8 +1,15 @@
-resource "libvirt_volume" "os_image" {
-  name   = "os_image.qcow2"
-  pool   = "default"
+resource "libvirt_volume" "ubuntu_base" {
+  name   = "ubuntu-base.qcow2"
   source = var.qcow2_image
   format = "qcow2"
+}
+
+resource "libvirt_volume" "os_image" {
+  name           = "os_image.qcow2"
+  pool           = "default"
+  base_volume_id = libvirt_volume.ubuntu_base.id
+  format         = "qcow2"
+  size           = 10737418240 # 10 GB
 }
 
 resource "libvirt_cloudinit_disk" "commoninit" {
@@ -20,8 +27,7 @@ users:
     lock_passwd: false
     passwd: "ubuntu"
     ssh-authorized-keys:
-      # You can add your public key here if you want SSH access
-      # - ssh-rsa AAAAB3NzaC1yc2E...
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH8GM1jWTnHcZPxv0/WtqLtPtFL7DvI3Qgui7MJxD/jc charlie@camba.coop"
 package_update: true
 packages:
   - docker.io
@@ -29,7 +35,9 @@ packages:
 runcmd:
   - systemctl start docker
   - systemctl enable docker
-  - docker run -d -p 80:80 nginx # Just checking that docker works / or run your app image here if available publicly
+  - git clone https://github.com/cuococarlos/trenecitos.git /opt/trenecitos
+  - cd /opt/trenecitos && docker build -t trenecitos-app .
+  - docker run -d -p 80:80 --name trenecitos trenecitos-app
 EOF
 }
 
