@@ -14,67 +14,28 @@ data "aws_ami" "amazon_linux_2023" {
   }
 }
 
-# 3. Crear un Security Group (Firewall) para la VM
-resource "aws_security_group" "app_sg" {
-  name        = "${var.app_name}-sg"
-  description = "Permitir trafico HTTP y SSH"
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+# 3. Utilizar un Security Group (Firewall) existente
+data "aws_security_group" "app_sg" {
+  name = "${var.app_name}-sg"
 }
 
-# 4. Crear un Rol de IAM para que la VM pueda descargar la imagen de ECR
-resource "aws_iam_role" "ec2_ecr_role" {
+# 4. Utilizar un Rol de IAM existente para descargar la imagen de ECR
+data "aws_iam_role" "ec2_ecr_role" {
   name = "${var.app_name}-ec2-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        }
-      }
-    ]
-  })
 }
 
-resource "aws_iam_role_policy_attachment" "ecr_read_only" {
-  role       = aws_iam_role.ec2_ecr_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-}
-
-resource "aws_iam_instance_profile" "ec2_profile" {
+# Utilizar un Instance Profile existente
+data "aws_iam_instance_profile" "ec2_profile" {
   name = "${var.app_name}-profile"
-  role = aws_iam_role.ec2_ecr_role.name
 }
 
 # 5. Crear la Máquina Virtual (Instancia EC2)
 resource "aws_instance" "app_vm" {
   ami                  = data.aws_ami.amazon_linux_2023.id
   instance_type        = "t3.micro" # Puedes cambiarlo a t2.micro si estás en la capa gratuita estricta
-  security_groups      = [aws_security_group.app_sg.name]
-  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
+  # Como usamos un data source, referenciamos por ID o nombre dependiendo del atributo
+  vpc_security_group_ids = [data.aws_security_group.app_sg.id]
+  iam_instance_profile   = data.aws_iam_instance_profile.ec2_profile.name
 
   # Este script se ejecuta al encender la VM por primera vez
   user_data = <<-EOF
